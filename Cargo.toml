@@ -1,0 +1,25 @@
+[package]
+name = "lodis"
+version = "0.1.0"
+authors = ["PeterDing <dfhayst@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+# for errors
+thiserror = "1.0"
+
+# for web
+futures = "0.3"
+actix-web = "3.3"
+
+# utils
+serde = "1.0"
+clap = "2"
+num_cpus = "1"
+
+lodisdb = { path = "lodisdb" }
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 'z'
