@@ -26,12 +26,17 @@ pub trait LodisData {
 
         let item = iter.next();
 
-        // This map does not exist
+        // This data does not exist
         if item.is_none() {
             return Ok(());
         }
 
         let (start_key, _) = item.unwrap();
+
+        // This start_key does not belong to the data
+        if &&start_key[0..9] != &self.prefix() {
+            return Ok(());
+        }
 
         let next_key_hash = u64_to_u8x8(siphash(&self.name()) + 1);
         let mut prefix: [u8; 9] = [0; 9];
@@ -47,14 +52,31 @@ pub trait LodisData {
             IteratorMode::From(&prefix[..], Direction::Reverse),
             readopts,
         );
-        let (end_key, _) = iter.next().unwrap();
+
+        let item = iter.next();
+
+        // This end key does not exist
+        if item.is_none() {
+            return Ok(());
+        }
+
+        let (end_key, _) = item.unwrap();
 
         let mut batch = WriteBatch::default();
-        batch.delete_range(&start_key, &end_key);
+
+        // This end key does not belong to the data. We delete the start_key
+        if &&end_key[0..9] != &self.prefix() {
+            batch.delete(&start_key);
+            self.db().write(batch)?;
+            return Ok(());
+        }
+
+        // If start_key == end_key, we only need to delete end_key
+        if &start_key != &end_key {
+            batch.delete_range(&start_key, &end_key);
+        }
         batch.delete(&end_key);
-
         self.db().write(batch)?;
-
         Ok(())
     }
 }
