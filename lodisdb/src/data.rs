@@ -16,10 +16,12 @@ pub trait LodisData {
     }
 
     fn remove(&self) -> Result<()> {
+        let db = self.db();
+
         let mut readopts = ReadOptions::default();
         readopts.set_prefix_same_as_start(true);
 
-        let mut iter = self.db().iterator_opt(
+        let mut iter = db.iterator_opt(
             IteratorMode::From(&self.prefix(), Direction::Forward),
             readopts,
         );
@@ -48,35 +50,34 @@ pub trait LodisData {
         let mut readopts = ReadOptions::default();
         readopts.set_prefix_same_as_start(true);
 
-        let mut iter = self.db().iterator_opt(
+        let mut iter = db.iterator_opt(
             IteratorMode::From(&prefix[..], Direction::Reverse),
             readopts,
         );
 
         let item = iter.next();
 
-        // This end key does not exist
+        // This end key does not exist, so we delete the start key
         if item.is_none() {
+            db.delete(&start_key)?;
             return Ok(());
         }
 
         let (end_key, _) = item.unwrap();
 
-        let mut batch = WriteBatch::default();
-
-        // This end key does not belong to the data. We delete the start_key
+        // This end key does not belong to the data. We delete the start key
         if &&end_key[0..9] != &self.prefix() {
-            batch.delete(&start_key);
-            self.db().write(batch)?;
+            db.delete(&start_key)?;
             return Ok(());
         }
 
-        // If start_key == end_key, we only need to delete end_key
-        if &start_key != &end_key {
+        // If start_key == end_key, we only need to delete end key
+        let mut batch = WriteBatch::default();
+        if &&start_key != &&end_key {
             batch.delete_range(&start_key, &end_key);
         }
         batch.delete(&end_key);
-        self.db().write(batch)?;
+        db.write(batch)?;
         Ok(())
     }
 }
