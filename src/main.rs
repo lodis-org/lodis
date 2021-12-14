@@ -29,6 +29,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(global_state.clone())
             .service(make_route())
     })
+    .keep_alive(1 * 60 * 60) // 1 hour
     .bind(&config.ip_port)
     .expect(&format!("Can't bind {}", &config.ip_port))
     .workers(config.workers)
